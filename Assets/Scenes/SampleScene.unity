@@ -395,7 +395,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6136c3b426807054a8b7075d59f702db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  obstaclePrefab: {fileID: 9153865466290768869, guid: 7a0458bc2f6b22341b2ee3b40c875a79, type: 3}
+  obstaclePrefab: {fileID: 7809331290410404023, guid: 0dd050efb10a21c4f8d1c3ab7e33f70b, type: 3}
   hoopPlusPrefab: {fileID: 9153865466290768869, guid: 6c69b1ba8af1c2b4a815a4f4144fdb1c, type: 3}
   platformCenter: {fileID: 131072396}
   hoop: {fileID: 1993637067}
@@ -403,9 +403,8 @@ MonoBehaviour:
   obstacleRadius: 2
   obstacleCount: 4
   minAngleGap: 45
-  minHoopPlusCount: 1
-  maxHoopPlusCount: 1
   hoopPlusAngleOffset: 0
+  hoopPlusYOffsetRange: {x: -2, y: 2}
   spawnInterval: 2
   extraAngleMarginDeg: 15
   overlapMask:

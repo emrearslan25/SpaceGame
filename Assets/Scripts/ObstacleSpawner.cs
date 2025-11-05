@@ -4,25 +4,24 @@ using System.Collections.Generic;
 public class ObstacleSpawner : MonoBehaviour
 {
     [Header("Engel Ayarları")]
-    [SerializeField] private GameObject obstaclePrefab;   // engel prefab'ı (Tag: Obstacle)
-    [SerializeField] private GameObject hoopPlusPrefab;   // toplanabilir prefab (Tag: HoopPlus)
-    [SerializeField] private Transform platformCenter;    // platform merkezi
-    [SerializeField] private Transform hoop;              // hoop referansı
-    [SerializeField] private Transform spawnTarget;       // spawn yüksekliği referansı (hoop'un içindeki obje)
-    [SerializeField] private float obstacleRadius = 3f;   // platform merkezinden uzaklık
-    [SerializeField] private int obstacleCount = 3;       // TOPLAM kaç obje spawn olacak (obstacle + hoopPlus)
-    [SerializeField] private float minAngleGap = 90f;     // minimum açı farkı (daha geniş boşluk)
+    [SerializeField] private GameObject obstaclePrefab;
+    [SerializeField] private GameObject hoopPlusPrefab;
+    [SerializeField] private Transform platformCenter;
+    [SerializeField] private Transform hoop;
+    [SerializeField] private Transform spawnTarget;
+    [SerializeField] private float obstacleRadius = 3f;
+    [SerializeField] private int obstacleCount = 3;
+    [SerializeField] private float minAngleGap = 90f;
 
     [Header("HoopPlus Ayarları")]
-    [SerializeField] private int minHoopPlusCount = 1;    // minimum kaç HoopPlus spawn olacak
-    [SerializeField] private int maxHoopPlusCount = 2;    // maximum kaç HoopPlus spawn olacak
     [SerializeField] private float hoopPlusAngleOffset = 0f;
+    [SerializeField] private Vector2 hoopPlusYOffsetRange = new Vector2(-2f, 2f); // inspector'dan ayarlanabilir
 
     [Header("Spawn Timing")]
     [SerializeField] private float spawnInterval = 5f;
 
     [Header("Çakışma Ayarları")]
-    [SerializeField] private float extraAngleMarginDeg = 30f;  // Daha fazla güvenlik mesafesi
+    [SerializeField] private float extraAngleMarginDeg = 30f;
     [SerializeField] private LayerMask overlapMask = ~0;
 
     [Header("Dönme Ayarları")]
@@ -42,7 +41,6 @@ public class ObstacleSpawner : MonoBehaviour
             GameObject platform = GameObject.Find("Platform");
             if (platform != null) platformCenter = platform.transform;
         }
-
         if (hoop == null)
         {
             GameObject hoopObj = GameObject.Find("Hoop");
@@ -53,6 +51,13 @@ public class ObstacleSpawner : MonoBehaviour
             currentSpawnHeight = spawnTarget.position.y;
         else if (hoop != null)
             currentSpawnHeight = hoop.position.y + 10f;
+
+        // Hızlı sanity check
+        if (obstaclePrefab == null) Debug.LogError("[Spawner] obstaclePrefab assigned? (NULL)");
+        if (hoopPlusPrefab == null) Debug.LogError("[Spawner] hoopPlusPrefab assigned? (NULL)");
+        if (platformCenter == null) Debug.LogWarning("[Spawner] platformCenter not set! Will try to Find('Platform') in Start.");
+        if (spawnTarget == null) Debug.LogWarning("[Spawner] spawnTarget not set! This may prevent spawning at expected heights.");
+        if (minAngleGap > 120f) Debug.LogWarning($"[Spawner] minAngleGap is very large ({minAngleGap}). Try smaller (30-60) for testing.");
     }
 
     void Update()
@@ -62,7 +67,6 @@ public class ObstacleSpawner : MonoBehaviour
         if (spawnTarget.position.y >= currentSpawnHeight && Time.time >= lastSpawnTime + spawnInterval)
         {
             SpawnWave();
-            // Rastgele yükseklik mesafesi (8 ile 15 birim arası)
             float randomHeight = Random.Range(8f, 15f);
             currentSpawnHeight = spawnTarget.position.y + randomHeight;
             lastSpawnTime = Time.time;
@@ -71,7 +75,6 @@ public class ObstacleSpawner : MonoBehaviour
         CleanOldObjects();
     }
 
-    // === YENİ GEOMETRİK VE FİZİKSEL KONTROLLER ===
     float GetTangentWidth(GameObject prefab)
     {
         if (prefab == null) return 0.5f;
@@ -106,19 +109,22 @@ public class ObstacleSpawner : MonoBehaviour
         var hoopController = hoop != null ? hoop.GetComponent<HoopController>() : null;
         if (hoopController != null) hoopAngle = hoopController.CurrentAngle;
 
-        // Bu wave için rastgele yön seç (tüm objeler aynı yönde dönecek)
         bool waveClockwise = Random.value < 0.5f;
 
-        // Kaç HoopPlus olacak (rastgele)
-        int hoopPlusCountThisWave = Random.Range(minHoopPlusCount, maxHoopPlusCount + 1);
-        // Geri kalan obstacle olacak
+        int hoopPlusCountThisWave = 1;
         int actualObstacleCount = Mathf.Max(0, obstacleCount - hoopPlusCountThisWave);
 
         Debug.Log($"Spawn Wave: {actualObstacleCount} Obstacle + {hoopPlusCountThisWave} HoopPlus (Total: {obstacleCount})");
 
+        if (obstaclePrefab == null && hoopPlusPrefab == null)
+        {
+            Debug.LogError("[Spawner] Both obstaclePrefab and hoopPlusPrefab are NULL. Assign in Inspector.");
+            return;
+        }
+
         List<float> usedAngles = new List<float>();
 
-        // === ENGELLER (Kırmızı Obstacle) ===
+        // ENGELLER
         if (obstaclePrefab != null && actualObstacleCount > 0)
         {
             for (int i = 0; i < actualObstacleCount; i++)
@@ -128,15 +134,26 @@ public class ObstacleSpawner : MonoBehaviour
                 for (int attempt = 0; attempt < 50 && !placed; attempt++)
                 {
                     float cand = Random.Range(-90f, 90f);
-                    
-                    // Minimum mesafe kontrolü (basitleştirilmiş)
-                    if (HasConflictWithUsedAngles(cand, usedAngles, minAngleGap))
-                        continue;
+                    Debug.Log($"[Spawner][Obstacle] Attempt {attempt} angle {cand:F2}");
 
-                    Vector3 pos = PolarOnPlatform(cand, obstacleRadius, spawnTarget.position.y);
+                    if (HasConflictWithUsedAngles(cand, usedAngles, minAngleGap))
+                    {
+                        Debug.Log($"[Spawner][Obstacle] angle {cand:F2} conflicts with usedAngles (minGap {minAngleGap})");
+                        continue;
+                    }
+
+                    float spawnY = spawnTarget.position.y;
+                    Vector3 pos = PolarOnPlatform(cand, obstacleRadius, spawnY);
                     Vector3 look = (platformCenter.position - pos).normalized;
                     look.y = 0f;
                     Quaternion rot = look != Vector3.zero ? Quaternion.LookRotation(look) : Quaternion.identity;
+
+                    // Opsiyonel overlap kontrolu
+                    if (WillOverlap(obstaclePrefab, pos, rot, overlapMask))
+                    {
+                        Debug.Log($"[Spawner][Obstacle] angle {cand:F2} would overlap other colliders, skipping.");
+                        continue;
+                    }
 
                     GameObject obstacle = Instantiate(obstaclePrefab, pos, rot);
                     obstacle.tag = "Obstacle";
@@ -144,53 +161,63 @@ public class ObstacleSpawner : MonoBehaviour
                     usedAngles.Add(cand);
                     placed = true;
 
-                    // Dönme component'i ekle (wave yönünü kullan)
-                    if (enableRotation)
-                        AddRotationComponent(obstacle, waveClockwise);
+                    Debug.Log($"[Spawner][Obstacle] Placed at angle {cand:F2}, pos {pos}, rot {rot.eulerAngles}");
+                    if (enableRotation) AddRotationComponent(obstacle, waveClockwise);
                 }
+
+                if (!placed) Debug.LogWarning($"[Spawner][Obstacle] Could not place obstacle #{i} after 50 attempts.");
             }
         }
 
-        // === HOOPPLUS (Yeşil Toplanabilir) ===
-        if (hoopPlusPrefab != null && hoopPlusCountThisWave > 0)
+        // HOOPPLUS (1 tane)
+        if (hoopPlusPrefab != null)
         {
-            for (int i = 0; i < hoopPlusCountThisWave; i++)
+            bool placed = false;
+
+            for (int attempt = 0; attempt < 100 && !placed; attempt++)
             {
-                bool placed = false;
+                float cand = Random.Range(-90f, 90f);
+                Debug.Log($"[Spawner][HoopPlus] Attempt {attempt} angle {cand:F2}");
 
-                for (int attempt = 0; attempt < 50 && !placed; attempt++)
+                // HoopPlus için daha geniş boşluk isteği
+                float requiredGap = minAngleGap + 20f;
+                if (HasConflictWithUsedAngles(cand, usedAngles, requiredGap))
                 {
-                    float cand = Random.Range(-90f, 90f);
-                    
-                    // Minimum mesafe kontrolü
-                    if (HasConflictWithUsedAngles(cand, usedAngles, minAngleGap))
-                        continue;
-
-                    Vector3 p = PolarOnPlatform(cand, obstacleRadius, spawnTarget.position.y);
-                    Vector3 look2 = (platformCenter.position - p).normalized; 
-                    look2.y = 0f;
-                    Quaternion r = look2 != Vector3.zero ? Quaternion.LookRotation(look2) : Quaternion.identity;
-
-                    GameObject hoopPlus = Instantiate(hoopPlusPrefab, p, r);
-                    hoopPlus.tag = "HoopPlus";
-                    activeCollectibles.Add(hoopPlus);
-                    usedAngles.Add(cand);
-                    placed = true;
-
-                    Debug.Log($"HoopPlus spawned at angle {cand}");
-
-                    // Dönme component'i ekle (wave yönünü kullan)
-                    if (enableRotation)
-                        AddRotationComponent(hoopPlus, waveClockwise);
+                    Debug.Log($"[Spawner][HoopPlus] angle {cand:F2} conflicts (requiredGap {requiredGap})");
+                    continue;
                 }
 
-                if (!placed)
-                    Debug.LogWarning($"HoopPlus #{i} could not be placed after 50 attempts!");
+                // Yükseklik aralığından rastgele al
+                float randomYOffset = Random.Range(hoopPlusYOffsetRange.x, hoopPlusYOffsetRange.y);
+                float spawnY = spawnTarget.position.y + randomYOffset;
+
+                Vector3 p = PolarOnPlatform(cand, obstacleRadius, spawnY);
+                Vector3 look2 = (platformCenter.position - p).normalized;
+                look2.y = 0f;
+                Quaternion r = look2 != Vector3.zero ? Quaternion.LookRotation(look2) : Quaternion.identity;
+
+                if (WillOverlap(hoopPlusPrefab, p, r, overlapMask))
+                {
+                    Debug.Log($"[Spawner][HoopPlus] angle {cand:F2} would overlap other colliders, skipping.");
+                    continue;
+                }
+
+                GameObject hoopPlus = Instantiate(hoopPlusPrefab, p, r);
+                hoopPlus.tag = "HoopPlus";
+                activeCollectibles.Add(hoopPlus);
+                usedAngles.Add(cand);
+                placed = true;
+
+                Debug.Log($"[Spawner][HoopPlus] Placed at angle {cand:F2}, pos {p}, heightOffset {randomYOffset:F2}");
+                if (enableRotation) AddRotationComponent(hoopPlus, waveClockwise);
             }
+
+            if (!placed)
+                Debug.LogWarning("[Spawner][HoopPlus] Could not place HoopPlus after 100 attempts!");
         }
-        else if (hoopPlusPrefab == null)
+        else
         {
-            Debug.LogError("HoopPlus Prefab is NOT assigned in Inspector!");
+            Debug.LogError("[Spawner] hoopPlusPrefab is NOT assigned in Inspector!");
         }
     }
 
@@ -233,6 +260,7 @@ public class ObstacleSpawner : MonoBehaviour
             GameObject o = activeObstacles[i];
             if (o == null || o.transform.position.y < cutoffY)
             {
+                if (o != null) Debug.Log($"[Spawner] Destroying obstacle at y={o.transform.position.y:F2} < cutoff {cutoffY:F2}");
                 if (o != null) Destroy(o);
                 activeObstacles.RemoveAt(i);
             }
@@ -243,6 +271,7 @@ public class ObstacleSpawner : MonoBehaviour
             GameObject c = activeCollectibles[i];
             if (c == null || c.transform.position.y < cutoffY)
             {
+                if (c != null) Debug.Log($"[Spawner] Destroying collectible at y={c.transform.position.y:F2} < cutoff {cutoffY:F2}");
                 if (c != null) Destroy(c);
                 activeCollectibles.RemoveAt(i);
             }
@@ -254,8 +283,8 @@ public class ObstacleSpawner : MonoBehaviour
         var rotator = obj.AddComponent<RotateAroundPlatform>();
         rotator.platformCenter = platformCenter;
         rotator.rotationSpeed = Random.Range(minRotationSpeed, maxRotationSpeed);
-        rotator.clockwise = clockwise; // Wave yönünü kullan
-        rotator.randomizeSpeed = false; // Biz zaten rastgele hız verdik
+        rotator.clockwise = clockwise;
+        rotator.randomizeSpeed = false;
     }
 
     void OnDrawGizmosSelected()
