@@ -15,7 +15,7 @@ public class ObstacleSpawner : MonoBehaviour
 
     [Header("HoopPlus Ayarları")]
     [SerializeField] private float hoopPlusAngleOffset = 0f;
-    [SerializeField] private Vector2 hoopPlusYOffsetRange = new Vector2(-2f, 2f); // inspector'dan ayarlanabilir
+    [SerializeField] private Vector2 hoopPlusYOffsetRange = new Vector2(5f, 5f); // HoopPlus her zaman 5f yukarıda
 
     [Header("Spawn Timing")]
     [SerializeField] private float spawnInterval = 5f;
@@ -67,6 +67,7 @@ public class ObstacleSpawner : MonoBehaviour
         if (spawnTarget.position.y >= currentSpawnHeight && Time.time >= lastSpawnTime + spawnInterval)
         {
             SpawnWave();
+            
             float randomHeight = Random.Range(8f, 15f);
             currentSpawnHeight = spawnTarget.position.y + randomHeight;
             lastSpawnTime = Time.time;
@@ -177,13 +178,10 @@ public class ObstacleSpawner : MonoBehaviour
             for (int attempt = 0; attempt < 100 && !placed; attempt++)
             {
                 float cand = Random.Range(-90f, 90f);
-                Debug.Log($"[Spawner][HoopPlus] Attempt {attempt} angle {cand:F2}");
 
-                // HoopPlus için daha geniş boşluk isteği
-                float requiredGap = minAngleGap + 20f;
-                if (HasConflictWithUsedAngles(cand, usedAngles, requiredGap))
+                // HoopPlus için aynı gap kullan (obstacle ile aynı kurallar)
+                if (HasConflictWithUsedAngles(cand, usedAngles, minAngleGap))
                 {
-                    Debug.Log($"[Spawner][HoopPlus] angle {cand:F2} conflicts (requiredGap {requiredGap})");
                     continue;
                 }
 
@@ -195,12 +193,6 @@ public class ObstacleSpawner : MonoBehaviour
                 Vector3 look2 = (platformCenter.position - p).normalized;
                 look2.y = 0f;
                 Quaternion r = look2 != Vector3.zero ? Quaternion.LookRotation(look2) : Quaternion.identity;
-
-                if (WillOverlap(hoopPlusPrefab, p, r, overlapMask))
-                {
-                    Debug.Log($"[Spawner][HoopPlus] angle {cand:F2} would overlap other colliders, skipping.");
-                    continue;
-                }
 
                 GameObject hoopPlus = Instantiate(hoopPlusPrefab, p, r);
                 hoopPlus.tag = "HoopPlus";
