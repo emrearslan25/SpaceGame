@@ -401,11 +401,13 @@ MonoBehaviour:
   hoop: {fileID: 1993637067}
   spawnTarget: {fileID: 2125112077}
   obstacleRadius: 2
-  obstacleCount: 3
+  obstacleCount: 4
   minAngleGap: 45
+  minHoopPlusCount: 1
+  maxHoopPlusCount: 1
   hoopPlusAngleOffset: 0
   spawnInterval: 2
-  extraAngleMarginDeg: 5
+  extraAngleMarginDeg: 15
   overlapMask:
     serializedVersion: 2
     m_Bits: 4294967295
