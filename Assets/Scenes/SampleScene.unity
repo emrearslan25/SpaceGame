@@ -411,6 +411,9 @@ MonoBehaviour:
   overlapMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  enableRotation: 1
+  minRotationSpeed: 20
+  maxRotationSpeed: 40
 --- !u!4 &495562004
 Transform:
   m_ObjectHideFlags: 0
