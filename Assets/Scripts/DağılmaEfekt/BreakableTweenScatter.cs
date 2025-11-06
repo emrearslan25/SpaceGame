@@ -1,41 +1,35 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using DG.Tweening;
 
-/// <summary>
-/// DOTween tabanlı parçalanma/dağılma bileşeni.
-/// Hoop (Tag: "Hoop") ile temas edince, piecesRoot altındaki parçaları
-/// belirlenen aralıkta etrafa zıplatarak (DOJump), döndürerek (DORotate),
-/// ardından fade + scale ile yok eder.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class BreakableTweenScatter : MonoBehaviour
 {
     [Header("Tetikleme")]
-    [SerializeField] private string triggerTag = "Hoop";
-    [Tooltip("Trigger kullan. Kapatırsan normal çarpışma ile tetiklenir.")]
+    [SerializeField] private string triggerTag = "Ball"; // ArtÄ±k Ball tag'i ile tetikleniyor
+    [Tooltip("Trigger kullan. KapatÄ±rsan normal Ã§arpÄ±ÅŸma ile tetiklenir.")]
     [SerializeField] private bool useTrigger = true;
-    [Tooltip("Trigger olayı için gerekiyorsa kinematic Rigidbody’yi otomatik ekle.")]
+    [Tooltip("Trigger olayÄ± iÃ§in gerekiyorsa kinematic Rigidbodyâ€™yi otomatik ekle.")]
     [SerializeField] private bool autoAddKinematicRigidbody = true;
 
-    [Header("Parçalar")]
+    [Header("ParÃ§alar")]
     [SerializeField] private Transform piecesRoot;
     [SerializeField] private bool includeInactiveChildren = true;
 
-    [Header("Saçılma Mesafesi")]
+    [Header("SaÃ§Ä±lma Mesafesi")]
     [SerializeField] private float minScatterDistance = 0.6f;
     [SerializeField] private float maxScatterDistance = 1.6f;
 
-    [Header("Yön Bias'ı")]
+    [Header("YÃ¶n Bias'Ä±")]
     [Range(0f, 1f)][SerializeField] private float hitOutwardBias = 0.7f;
     [Range(0f, 1f)][SerializeField] private float upwardBias = 0.25f;
 
-    [Header("Zıplama/Yol")]
+    [Header("ZÄ±plama/Yol")]
     [SerializeField] private float jumpPower = 0.9f;
     [SerializeField] private float jumpDuration = 0.8f;
     [SerializeField] private int jumpCount = 1;
     [SerializeField] private Ease jumpEase = Ease.OutCubic;
 
-    [Header("Spin / Görsel Sonlandırma")]
+    [Header("Spin / GÃ¶rsel SonlandÄ±rma")]
     [SerializeField] private Vector2 randomSpinDegPerAxis = new Vector2(360f, 720f);
     [SerializeField] private float spinDuration = 0.6f;
     [SerializeField] private Ease spinEase = Ease.OutCubic;
@@ -45,12 +39,15 @@ public class BreakableTweenScatter : MonoBehaviour
     [SerializeField] private Ease fadeEase = Ease.InCubic;
     [SerializeField] private float pieceLifetime = 1.5f;
 
-    [Header("Zamanlama Jitter'ı")]
+    [Header("Zamanlama Jitter'Ä±")]
     [SerializeField] private float perPieceDelayJitter = 0.12f;
 
     [Header("Opsiyonel")]
     [SerializeField] private GameObject explodeVfx;
     [SerializeField] private bool hideRootRendererOnExplode = true;
+
+    [Header("Skor AyarÄ±")]
+    [SerializeField] private int scoreToAddOnBreak = 10; // Temasta eklenecek puan
 
     private bool exploded;
     private Vector3 lastHitPoint;
@@ -68,7 +65,7 @@ public class BreakableTweenScatter : MonoBehaviour
         if (!col) Debug.LogWarning("[BreakableTweenScatter] Collider yok. Eklendi mi?");
         col.isTrigger = useTrigger;
 
-        // Trigger olayları için en az bir Rigidbody gereksinimi:
+        // Trigger olaylarÄ± iÃ§in Rigidbody gerekir
         if (useTrigger && autoAddKinematicRigidbody)
         {
             var rb = GetComponent<Rigidbody>();
@@ -85,6 +82,8 @@ public class BreakableTweenScatter : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (!useTrigger || exploded) return;
+
+        // ğŸ¯ Sadece Ball tag'i temas ettiÄŸinde Ã§alÄ±ÅŸsÄ±n
         if (!other.CompareTag(triggerTag)) return;
 
         lastHitPoint = other.ClosestPoint(transform.position);
@@ -95,6 +94,7 @@ public class BreakableTweenScatter : MonoBehaviour
     void OnCollisionEnter(Collision collision)
     {
         if (useTrigger || exploded) return;
+
         if (!collision.collider.CompareTag(triggerTag)) return;
 
         lastHitPoint = collision.GetContact(0).point;
@@ -105,9 +105,16 @@ public class BreakableTweenScatter : MonoBehaviour
     {
         exploded = true;
 
+        // ğŸ’¥ Skor ekle
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.Add(scoreToAddOnBreak);
+            Debug.Log($"ğŸ† DaÄŸÄ±lma tetiklendi! +{scoreToAddOnBreak} puan eklendi. Toplam: {ScoreManager.Instance.Score}");
+        }
+
         if (piecesRoot == null)
         {
-            Debug.LogWarning("[BreakableTweenScatter] piecesRoot atanmadı. Transform kullanılacak.");
+            Debug.LogWarning("[BreakableTweenScatter] piecesRoot atanmadÄ±. Transform kullanÄ±lacak.");
             piecesRoot = transform;
         }
 
@@ -128,13 +135,13 @@ public class BreakableTweenScatter : MonoBehaviour
 
         foreach (var t in parts)
         {
-            if (t == piecesRoot || t == transform) continue; // root’u atla
+            if (t == piecesRoot || t == transform) continue;
             anyPiece = true;
 
             var piece = t.gameObject;
             t.SetParent(null, true);
 
-            // --- hedef pozisyon (geniş saçılma + bias) ---
+            // Rastgele yÃ¶n
             Vector3 randDir = Random.onUnitSphere;
             randDir.y = Mathf.Lerp(randDir.y, Mathf.Abs(randDir.y), upwardBias);
             randDir.Normalize();
@@ -153,12 +160,12 @@ public class BreakableTweenScatter : MonoBehaviour
 
             float dly = Random.Range(0f, perPieceDelayJitter);
 
-            // 1) zıplama/yer değiştirme
+            // 1ï¸âƒ£ ZÄ±plama hareketi
             t.DOJump(targetPos, jumpPower, jumpCount, jumpDuration)
                 .SetDelay(dly)
                 .SetEase(jumpEase);
 
-            // 2) spin
+            // 2ï¸âƒ£ Spin
             Vector3 spin = new Vector3(
                 Random.Range(randomSpinDegPerAxis.x, randomSpinDegPerAxis.y),
                 Random.Range(randomSpinDegPerAxis.x, randomSpinDegPerAxis.y),
@@ -170,18 +177,18 @@ public class BreakableTweenScatter : MonoBehaviour
                 .SetDelay(dly * 0.5f)
                 .SetEase(spinEase);
 
-            // 3) fade + scale (renderer mat’lerinde _BaseColor / _Color)
+            // 3ï¸âƒ£ Fade + scale
             FadeOutRenderer(piece, Mathf.Max(0f, jumpDuration - fadeDuration * 0.7f));
             t.DOScale(Vector3.zero, scaleDownDuration)
                 .SetDelay(Mathf.Max(0f, jumpDuration - scaleDownDuration * 0.6f))
                 .SetEase(scaleEase);
 
-            // 4) sil
+            // 4ï¸âƒ£ Yok et
             Destroy(piece, pieceLifetime);
         }
 
         if (!anyPiece)
-            Debug.LogWarning("[BreakableTweenScatter] Parça bulunamadı. piecesRoot altında child var mı?");
+            Debug.LogWarning("[BreakableTweenScatter] ParÃ§a bulunamadÄ±. piecesRoot altÄ±nda child var mÄ±?");
 
         Destroy(gameObject, 0.1f);
     }
@@ -191,7 +198,6 @@ public class BreakableTweenScatter : MonoBehaviour
         var rend = go.GetComponent<Renderer>();
         if (!rend) return;
 
-        // Tüm materyallerde alfa düşürmeyi dene (_BaseColor öncelikli, yoksa _Color)
         foreach (var mat in rend.materials)
         {
             if (mat == null) continue;
@@ -212,10 +218,6 @@ public class BreakableTweenScatter : MonoBehaviour
                 mat.DOColor(new Color(c.r, c.g, c.b, 0f), "_Color", fadeDuration)
                    .SetDelay(delay)
                    .SetEase(fadeEase);
-            }
-            else
-            {
-                // Shader alfa desteklemiyorsa scale ile kapatırız (zaten var)
             }
         }
     }

@@ -9,6 +9,7 @@ TagManager:
   - Undefined
   - LevelPlatform
   - Bullet
+  - Ball
   layers:
   - Default
   - TransparentFX
