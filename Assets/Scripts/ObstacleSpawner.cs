@@ -5,7 +5,7 @@ public class ObstacleSpawner : MonoBehaviour
 {
     [Header("Engel Ayarları")]
     [SerializeField] private GameObject obstaclePrefab;
-    [SerializeField] private GameObject hoopPlusPrefab;
+    [SerializeField] private GameObject levelPlatformPrefab; // Eski HoopPlus yerine
     [SerializeField] private Transform platformCenter;
     [SerializeField] private Transform hoop;
     [SerializeField] private Transform spawnTarget;
@@ -14,9 +14,9 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float minAngleGap = 90f;
     [SerializeField] private float obstacleInwardOffset = 0f; // Obstacle'ı merkeze doğru kaydırma miktarı
 
-    [Header("HoopPlus Ayarları")]
-    [SerializeField] private float hoopPlusAngleOffset = 0f;
-    [SerializeField] private Vector2 hoopPlusYOffsetRange = new Vector2(5f, 5f); // HoopPlus her zaman 5f yukarıda
+    [Header("Level Platform Ayarları")]
+    [SerializeField] private float levelPlatformInterval = 10f; // Her 10 saniyede bir
+    [SerializeField] private float levelPlatformRadius = 3f; // Platform'un yarıçapı
 
     [Header("Spawn Timing")]
     [SerializeField] private float spawnInterval = 5f;
@@ -31,9 +31,11 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float maxRotationSpeed = 40f;
 
     private readonly List<GameObject> activeObstacles = new List<GameObject>();
-    private readonly List<GameObject> activeCollectibles = new List<GameObject>();
+    private readonly List<GameObject> activePlatforms = new List<GameObject>();
     private float lastSpawnTime = 0f;
     private float currentSpawnHeight = 0f;
+    private float nextLevelPlatformTime = 10f; // İlk platform 10 saniyede
+    private float nextDebugTime = 5f; // Her 5 saniyede debug
 
     void Start()
     {
@@ -55,7 +57,7 @@ public class ObstacleSpawner : MonoBehaviour
 
         // Hızlı sanity check
         if (obstaclePrefab == null) Debug.LogError("[Spawner] obstaclePrefab assigned? (NULL)");
-        if (hoopPlusPrefab == null) Debug.LogError("[Spawner] hoopPlusPrefab assigned? (NULL)");
+        if (levelPlatformPrefab == null) Debug.LogWarning("[Spawner] levelPlatformPrefab not assigned - level platforms won't spawn");
         if (platformCenter == null) Debug.LogWarning("[Spawner] platformCenter not set! Will try to Find('Platform') in Start.");
         if (spawnTarget == null) Debug.LogWarning("[Spawner] spawnTarget not set! This may prevent spawning at expected heights.");
         if (minAngleGap > 120f) Debug.LogWarning($"[Spawner] minAngleGap is very large ({minAngleGap}). Try smaller (30-60) for testing.");
@@ -65,6 +67,14 @@ public class ObstacleSpawner : MonoBehaviour
     {
         if (hoop == null || platformCenter == null || spawnTarget == null) return;
 
+        // Debug timer - Her 5 saniyede bir
+        if (Time.time >= nextDebugTime)
+        {
+            Debug.Log($"⏱️ Saniye: {Time.time:F0} - Next Platform: {nextLevelPlatformTime:F0}s - Will spawn? {Time.time >= nextLevelPlatformTime}");
+            nextDebugTime += 5f;
+        }
+
+        // Normal obstacle spawn
         if (spawnTarget.position.y >= currentSpawnHeight && Time.time >= lastSpawnTime + spawnInterval)
         {
             SpawnWave();
@@ -72,6 +82,15 @@ public class ObstacleSpawner : MonoBehaviour
             float randomHeight = Random.Range(8f, 15f);
             currentSpawnHeight = spawnTarget.position.y + randomHeight;
             lastSpawnTime = Time.time;
+        }
+
+        // Level platform spawn (her 10 saniyede bir)
+        if (Time.time >= nextLevelPlatformTime)
+        {
+            Debug.Log($"🚨 [Spawner] LEVEL PLATFORM SPAWN TRIGGERED! Time: {Time.time:F2}, Next Platform Time: {nextLevelPlatformTime:F2}");
+            SpawnLevelPlatform();
+            nextLevelPlatformTime += levelPlatformInterval;
+            Debug.Log($"[Spawner] Next platform scheduled at time: {nextLevelPlatformTime:F2}");
         }
 
         CleanOldObjects();
@@ -113,23 +132,20 @@ public class ObstacleSpawner : MonoBehaviour
 
         bool waveClockwise = Random.value < 0.5f;
 
-        int hoopPlusCountThisWave = 1;
-        int actualObstacleCount = Mathf.Max(0, obstacleCount - hoopPlusCountThisWave);
+        Debug.Log($"Spawn Wave: {obstacleCount} Obstacles");
 
-        Debug.Log($"Spawn Wave: {actualObstacleCount} Obstacle + {hoopPlusCountThisWave} HoopPlus (Total: {obstacleCount})");
-
-        if (obstaclePrefab == null && hoopPlusPrefab == null)
+        if (obstaclePrefab == null)
         {
-            Debug.LogError("[Spawner] Both obstaclePrefab and hoopPlusPrefab are NULL. Assign in Inspector.");
+            Debug.LogError("[Spawner] obstaclePrefab is NULL. Assign in Inspector.");
             return;
         }
 
         List<float> usedAngles = new List<float>();
 
         // ENGELLER
-        if (obstaclePrefab != null && actualObstacleCount > 0)
+        if (obstaclePrefab != null && obstacleCount > 0)
         {
-            for (int i = 0; i < actualObstacleCount; i++)
+            for (int i = 0; i < obstacleCount; i++)
             {
                 bool placed = false;
 
@@ -176,48 +192,37 @@ public class ObstacleSpawner : MonoBehaviour
                 if (!placed) Debug.LogWarning($"[Spawner][Obstacle] Could not place obstacle #{i} after 50 attempts.");
             }
         }
+    }
 
-        // HOOPPLUS (1 tane)
-        if (hoopPlusPrefab != null)
+    void SpawnLevelPlatform()
+    {
+        Debug.Log($"[Spawner] SpawnLevelPlatform called! Prefab null? {levelPlatformPrefab == null}");
+        
+        if (levelPlatformPrefab == null)
         {
-            bool placed = false;
-
-            for (int attempt = 0; attempt < 100 && !placed; attempt++)
-            {
-                float cand = Random.Range(-90f, 90f);
-
-                // HoopPlus için aynı gap kullan (obstacle ile aynı kurallar)
-                if (HasConflictWithUsedAngles(cand, usedAngles, minAngleGap))
-                {
-                    continue;
-                }
-
-                // Yükseklik aralığından rastgele al
-                float randomYOffset = Random.Range(hoopPlusYOffsetRange.x, hoopPlusYOffsetRange.y);
-                float spawnY = spawnTarget.position.y + randomYOffset;
-
-                Vector3 p = PolarOnPlatform(cand, obstacleRadius, spawnY);
-                Vector3 look2 = (platformCenter.position - p).normalized;
-                look2.y = 0f;
-                Quaternion r = look2 != Vector3.zero ? Quaternion.LookRotation(look2) : Quaternion.identity;
-
-                GameObject hoopPlus = Instantiate(hoopPlusPrefab, p, r);
-                hoopPlus.tag = "HoopPlus";
-                activeCollectibles.Add(hoopPlus);
-                usedAngles.Add(cand);
-                placed = true;
-
-                Debug.Log($"[Spawner][HoopPlus] Placed at angle {cand:F2}, pos {p}, heightOffset {randomYOffset:F2}");
-                if (enableRotation) AddRotationComponent(hoopPlus, waveClockwise);
-            }
-
-            if (!placed)
-                Debug.LogWarning("[Spawner][HoopPlus] Could not place HoopPlus after 100 attempts!");
+            Debug.LogError("[Spawner] levelPlatformPrefab is NULL! Assign in Inspector!");
+            return;
         }
-        else
-        {
-            Debug.LogError("[Spawner] hoopPlusPrefab is NOT assigned in Inspector!");
-        }
+
+        // Platform merkezde, mevcut yükseklikte spawn olacak
+        float spawnHeight = spawnTarget != null ? spawnTarget.position.y : 0f;
+        Vector3 spawnPos = new Vector3(
+            platformCenter.position.x,
+            spawnHeight,
+            platformCenter.position.z
+        );
+
+        Debug.Log($"[Spawner] Spawning Level Platform at position: {spawnPos}");
+
+        GameObject platform = Instantiate(levelPlatformPrefab, spawnPos, Quaternion.identity);
+        // Tag yerine direkt name kullanabiliriz veya tag'i Unity'de manuel oluşturmalıyız
+        activePlatforms.Add(platform);
+
+        Debug.Log($"🎯 Level Platform spawned at height {spawnHeight:F2}, Active platforms: {activePlatforms.Count}");
+
+        // Platform da dönsün
+        bool clockwise = Random.value < 0.5f;
+        if (enableRotation) AddRotationComponent(platform, clockwise);
     }
 
     Vector3 PolarOnPlatform(float angleDeg, float radius, float worldY)
@@ -265,14 +270,14 @@ public class ObstacleSpawner : MonoBehaviour
             }
         }
 
-        for (int i = activeCollectibles.Count - 1; i >= 0; i--)
+        for (int i = activePlatforms.Count - 1; i >= 0; i--)
         {
-            GameObject c = activeCollectibles[i];
-            if (c == null || c.transform.position.y < cutoffY)
+            GameObject p = activePlatforms[i];
+            if (p == null || p.transform.position.y < cutoffY)
             {
-                if (c != null) Debug.Log($"[Spawner] Destroying collectible at y={c.transform.position.y:F2} < cutoff {cutoffY:F2}");
-                if (c != null) Destroy(c);
-                activeCollectibles.RemoveAt(i);
+                if (p != null) Debug.Log($"[Spawner] Destroying platform at y={p.transform.position.y:F2} < cutoff {cutoffY:F2}");
+                if (p != null) Destroy(p);
+                activePlatforms.RemoveAt(i);
             }
         }
     }

@@ -1,64 +1,89 @@
-using UnityEngine;
 using System;
-// UI için:
-using UnityEngine.UI;
-using TMPro;
+using UnityEngine;
 
-public class ScoreManager : MonoBehaviour
+/// <summary>
+/// Basit, sahneler arasÄ± kalÄ±cÄ± ve olay tabanlÄ± skor yÃ¶netimi.
+/// - Otomatik bootstrap (scene load Ã¶ncesi yaratÄ±lÄ±r)
+/// - Her yerden eriÅŸilebilir (ScoreManager.Instance)
+/// - UI'dan baÄŸÄ±msÄ±z; UI iÃ§in ScoreUIBinder kullan
+/// </summary>
+public sealed class ScoreManager : MonoBehaviour
 {
-    public static ScoreManager Instance { get; private set; }
+    private static ScoreManager _instance;
 
-    [Header("Skor")]
-    [SerializeField] private int score = 0; // backing field
+    public static ScoreManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                CreateSingleton();
+            }
+            return _instance;
+        }
+    }
 
-    public int Score => score; // okunabilir property
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Bootstrap()
+    {
+        if (_instance == null)
+            CreateSingleton();
+    }
+
+    private static void CreateSingleton()
+    {
+        // Var olan bir ScoreManager sahnede varsa onu kullan
+        var existing = GameObject.FindObjectOfType<ScoreManager>();
+        if (existing != null)
+        {
+            _instance = existing;
+            DontDestroyOnLoad(existing.gameObject);
+            return;
+        }
+
+        var go = new GameObject("ScoreManager");
+        _instance = go.AddComponent<ScoreManager>();
+        DontDestroyOnLoad(go);
+    }
+
     public event Action<int> OnScoreChanged;
 
-    [Header("UI (istediðini baðla)")]
-    [SerializeField] private string prefix = "Score: ";
-    [SerializeField] private TMP_Text tmpText;     // TextMeshPro kullanýyorsan bunu baðla
-    [SerializeField] private Text legacyText;      // Legacy UI Text kullanýyorsan bunu baðla
+    public int Score { get; private set; } = 0;
 
-    void Awake()
+    private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
+        _instance = this;
         DontDestroyOnLoad(gameObject);
-        RefreshUI(); // baþta 0'ý yaz
+    }
+
+    public void Set(int value)
+    {
+        if (value < 0) value = 0;
+        if (Score == value) return;
+        Score = value;
+        Debug.Log($"[ScoreManager] Score set to {Score}");
+        OnScoreChanged?.Invoke(Score);
     }
 
     public void Add(int amount = 1)
     {
-        score += amount;
-        OnScoreChanged?.Invoke(score);
-        RefreshUI();
+        if (amount == 0) return;
+        Set(Score + amount);
     }
 
     public void Subtract(int amount = 1)
     {
-        score = Mathf.Max(0, score - amount);
-        OnScoreChanged?.Invoke(score);
-        RefreshUI();
+        if (amount == 0) return;
+        Set(Score - amount);
     }
 
     public void ResetScore()
     {
-        score = 0;
-        OnScoreChanged?.Invoke(score);
-        RefreshUI();
-    }
-
-    // ---- UI güncelleme ----
-    void RefreshUI()
-    {
-        if (tmpText != null)
-            tmpText.text = prefix + score.ToString();
-
-        if (legacyText != null)
-            legacyText.text = prefix + score.ToString();
+        Set(0);
     }
 }

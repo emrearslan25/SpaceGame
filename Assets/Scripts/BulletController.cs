@@ -51,11 +51,11 @@ public class BulletController : MonoBehaviour
             // Mermiyi yok et
             Destroy(gameObject);
         }
-        // HoopPlus'a çarptığında (isteğe bağlı)
-        else if (other.CompareTag("HoopPlus"))
+        // LevelPlatform'a çarptığında (isteğe bağlı)
+        else if (other.CompareTag("LevelPlatform"))
         {
-            Debug.Log("Mermi HoopPlus'a çarptı (görmezden gelindi)");
-            // HoopPlus'a zarar verme, sadece mermiyi yok et
+            Debug.Log("Mermi LevelPlatform'a çarptı (görmezden gelindi)");
+            // LevelPlatform'a zarar verme, sadece mermiyi yok et
             Destroy(gameObject);
         }
     }

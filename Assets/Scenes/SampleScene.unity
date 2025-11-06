@@ -402,7 +402,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   obstaclePrefab: {fileID: 7809331290410404023, guid: 0dd050efb10a21c4f8d1c3ab7e33f70b, type: 3}
-  hoopPlusPrefab: {fileID: 9153865466290768869, guid: 6c69b1ba8af1c2b4a815a4f4144fdb1c, type: 3}
+  levelPlatformPrefab: {fileID: 5990415847717728378, guid: 47ba622432e484f48936e4deda09c598, type: 3}
   platformCenter: {fileID: 131072396}
   hoop: {fileID: 1993637067}
   spawnTarget: {fileID: 2125112077}
@@ -410,8 +410,8 @@ MonoBehaviour:
   obstacleCount: 4
   minAngleGap: 45
   obstacleInwardOffset: 0
-  hoopPlusAngleOffset: 0
-  hoopPlusYOffsetRange: {x: -2, y: 2}
+  levelPlatformInterval: 10
+  levelPlatformRadius: 3
   spawnInterval: 2
   extraAngleMarginDeg: 15
   overlapMask:
@@ -700,6 +700,7 @@ GameObject:
   - component: {fileID: 1469456741}
   - component: {fileID: 1469456743}
   - component: {fileID: 1469456742}
+  - component: {fileID: 1469456744}
   m_Layer: 5
   m_Name: Score
   m_TagString: Untagged
@@ -823,6 +824,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469456740}
   m_CullTransparentMesh: 1
+--- !u!114 &1469456744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469456740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43a39d5fffcc5144ba263a8f7e0e9ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefix: 
+  tmpText: {fileID: 1469456742}
+  legacyText: {fileID: 0}
 --- !u!1 &1681839506
 GameObject:
   m_ObjectHideFlags: 0
@@ -966,6 +982,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1923912584}
   - component: {fileID: 1923912583}
+  - component: {fileID: 1923912585}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -985,10 +1002,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3a47c8a19efb344b94a01e7e5a4e7a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  score: 0
-  prefix: 'Score: '
-  tmpText: {fileID: 1469456742}
-  legacyText: {fileID: 0}
 --- !u!4 &1923912584
 Transform:
   m_ObjectHideFlags: 0
@@ -1004,6 +1017,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1923912585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923912582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43a39d5fffcc5144ba263a8f7e0e9ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefix: 0
+  tmpText: {fileID: 1469456742}
+  legacyText: {fileID: 0}
 --- !u!1 &1993637061 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 337509878566860248, guid: b2fc3aa3fa8ff39469e5a0c8c7520efb, type: 3}

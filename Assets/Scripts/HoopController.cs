@@ -28,6 +28,16 @@ public class HoopController : MonoBehaviour
 
     public float CurrentAngle => currentAngle;
 
+    /// <summary>
+    /// Dışarıdan hız artışı için (LevelPlatform kullanacak)
+    /// </summary>
+    public void BoostSpeed(float amount)
+    {
+        moveSpeedY += amount;
+        moveSpeedY = Mathf.Min(moveSpeedY, maxSpeed); // Max hızı aşmasın
+        Debug.Log($"⚡ Hız artırıldı! Yeni hız: {moveSpeedY:F2}");
+    }
+
     void Start()
     {
         startPos = transform.position;
@@ -135,6 +145,7 @@ public class HoopController : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(lookDirection);
 
         CheckNearbyObstacles();
+        CheckNearbyPlatforms();
     }
 
     void CheckNearbyObstacles()
@@ -156,6 +167,27 @@ public class HoopController : MonoBehaviour
         }
     }
 
+    // LevelPlatform'ları tag'e bakmadan bile tespit edelim (script ile)
+    void CheckNearbyPlatforms()
+    {
+        var platforms = GameObject.FindObjectsOfType<LevelPlatform>();
+        if (platforms == null || platforms.Length == 0) return;
+
+        // Ring platform mantığı: Aynı yükseklikte (Y farkı küçük) olduğumuzda topla
+        const float verticalThreshold = 0.8f; // aynı seviyeye geldiğinde
+        foreach (var plat in platforms)
+        {
+            if (plat == null) continue;
+            float dy = Mathf.Abs(transform.position.y - plat.transform.position.y);
+            if (dy < verticalThreshold)
+            {
+                Debug.Log("[Hoop] Collecting LevelPlatform by proximity (Y close)");
+                plat.Collect(transform);
+                break;
+            }
+        }
+    }
+
     void OnTriggerEnter(Collider other)
     {
         CheckObstacleCollision(other.gameObject);
@@ -169,13 +201,6 @@ public class HoopController : MonoBehaviour
     void CheckObstacleCollision(GameObject obj)
     {
         if (obj == null) return;
-
-        if (obj.CompareTag("HoopPlus"))
-        {
-            ScoreManager.Instance?.Add(1);
-            Destroy(obj);
-            return;
-        }
 
         if (obj.CompareTag("Obstacle"))
         {
