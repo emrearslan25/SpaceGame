@@ -12,11 +12,11 @@ GameObject:
   - component: {fileID: 4623530249704360778}
   - component: {fileID: 378493322774440791}
   - component: {fileID: 7335081361633204938}
-  - component: {fileID: 3355629514682161301}
   - component: {fileID: 2073759623195736661}
+  - component: {fileID: 3145718069186781497}
   m_Layer: 0
   m_Name: Sphere
-  m_TagString: Player
+  m_TagString: Hoop
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 8.71, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.4}
+  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -107,20 +107,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3355629514682161301
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5788427803485595194}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ba2bc8e127ba3b4a85b25e888adf1f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 3
-  lifetime: 1
 --- !u!54 &2073759623195736661
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -148,3 +134,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
+--- !u!114 &3145718069186781497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5788427803485595194}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f164ac3b057eeb646978a5a393a64e1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 10
+  direction: {x: 0, y: 1, z: 0}
+  damage: 1
+  lifetime: 3

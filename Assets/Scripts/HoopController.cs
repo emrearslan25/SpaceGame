@@ -19,12 +19,6 @@ public class HoopController : MonoBehaviour
     [Header("Kamera Ayarları")]
     [SerializeField] private Transform cameraTransform;
 
-    [Header("Ateş Ayarları")]
-    [SerializeField] private GameObject fireballPrefab;
-    [SerializeField] private Transform fireSpawnPoint;
-    [SerializeField] private float fireInterval = 0.3f; // kaç saniyede bir ateş etsin
-    private float nextFireTime = 0f;
-
     private Vector3 startPos;
     private float currentAngle = 0f;
     private float startY;
@@ -141,26 +135,6 @@ public class HoopController : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(lookDirection);
 
         CheckNearbyObstacles();
-
-        // 🔥 Sürekli Ateş Etme
-        if (Time.time >= nextFireTime)
-        {
-            Fire();
-            nextFireTime = Time.time + fireInterval;
-        }
-    }
-
-    void Fire()
-    {
-        if (fireballPrefab == null) return;
-
-        GameObject fireball = Instantiate(
-            fireballPrefab,
-            fireSpawnPoint != null ? fireSpawnPoint.position : transform.position + transform.forward,
-            transform.rotation
-        );
-
-        Debug.Log("Ateş topu fırlatıldı!");
     }
 
     void CheckNearbyObstacles()

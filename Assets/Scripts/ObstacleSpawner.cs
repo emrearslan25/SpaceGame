@@ -12,6 +12,7 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float obstacleRadius = 3f;
     [SerializeField] private int obstacleCount = 3;
     [SerializeField] private float minAngleGap = 90f;
+    [SerializeField] private float obstacleInwardOffset = 0f; // Obstacle'ı merkeze doğru kaydırma miktarı
 
     [Header("HoopPlus Ayarları")]
     [SerializeField] private float hoopPlusAngleOffset = 0f;
@@ -145,24 +146,30 @@ public class ObstacleSpawner : MonoBehaviour
 
                     float spawnY = spawnTarget.position.y;
                     Vector3 pos = PolarOnPlatform(cand, obstacleRadius, spawnY);
+                    
+                    // Pozisyonu merkeze doğru kaydır
                     Vector3 look = (platformCenter.position - pos).normalized;
                     look.y = 0f;
-                    Quaternion rot = look != Vector3.zero ? Quaternion.LookRotation(look) : Quaternion.identity;
+                    float totalOffset = obstacleInwardOffset;
+                    Vector3 adjustedPos = pos + look * totalOffset;
+
+                    // Basit rotasyon
+                    Quaternion finalRotation = Quaternion.identity;
 
                     // Opsiyonel overlap kontrolu
-                    if (WillOverlap(obstaclePrefab, pos, rot, overlapMask))
+                    if (WillOverlap(obstaclePrefab, adjustedPos, finalRotation, overlapMask))
                     {
                         Debug.Log($"[Spawner][Obstacle] angle {cand:F2} would overlap other colliders, skipping.");
                         continue;
                     }
 
-                    GameObject obstacle = Instantiate(obstaclePrefab, pos, rot);
+                    GameObject obstacle = Instantiate(obstaclePrefab, adjustedPos, finalRotation);
                     obstacle.tag = "Obstacle";
                     activeObstacles.Add(obstacle);
                     usedAngles.Add(cand);
                     placed = true;
 
-                    Debug.Log($"[Spawner][Obstacle] Placed at angle {cand:F2}, pos {pos}, rot {rot.eulerAngles}");
+                    Debug.Log($"[Spawner][Obstacle] Placed at angle {cand:F2}, pos {adjustedPos}, rot {finalRotation.eulerAngles}");
                     if (enableRotation) AddRotationComponent(obstacle, waveClockwise);
                 }
 
