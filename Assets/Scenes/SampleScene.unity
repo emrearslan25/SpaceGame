@@ -401,7 +401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6136c3b426807054a8b7075d59f702db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  obstaclePrefab: {fileID: 7809331290410404023, guid: 0dd050efb10a21c4f8d1c3ab7e33f70b, type: 3}
+  obstaclePrefab: {fileID: 7281913808619859665, guid: f10640ea07561ca47aeb6dd53a95ea2d, type: 3}
   levelPlatformPrefab: {fileID: 5990415847717728378, guid: 47ba622432e484f48936e4deda09c598, type: 3}
   platformCenter: {fileID: 131072396}
   hoop: {fileID: 1993637067}
